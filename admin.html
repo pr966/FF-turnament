@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Admin • Free Fire Tournaments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary:   #F8FAFC;    /* soft white */
+      --bg-secondary: #E2E8F0;    /* light gray */
+      --text-dark:    #1E293B;    /* rich dark text */
+      --accent-blue:  #2563EB;    /* brand blue */
+      --accent-gold:  #FBBF24;    /* prize gold */
+      --accent-red:   #DC2626;    /* alerts/danger */
+      --border:       #CBD5E1;    /* soft outline */
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg-primary);
+      color: var(--text-dark);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .brand-title { font-family: 'Russo One', sans-serif; letter-spacing: 0.5px; }
+    .app { display: flex; min-height: 100svh; }
+    header { position: sticky; top: 0; background: var(--bg-primary); border-bottom: 1px solid var(--border); padding: 12px 16px; z-index: 10; }
+
+    /* Drawer / Nav */
+    .drawer { width: 84px; border-right: 1px solid var(--border); background: white; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 6px; position: sticky; top: 0; height: 100svh; }
+    .nav-btn { width: 100%; border: 1px solid var(--border); background: white; border-radius: 12px; padding: 10px 6px; display: grid; place-items: center; gap: 4px; cursor: pointer; color: #475569; }
+    .nav-btn.active { background: var(--bg-primary); color: var(--text-dark); }
+    .nav-icon { width: 22px; height: 22px; }
+
+    .content { flex: 1; display: flex; flex-direction: column; }
+    main { padding: 12px; }
+
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (min-width: 720px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      .cards { grid-template-columns: repeat(4, 1fr); }
+      main { max-width: 1080px; margin: 0 auto; }
+    }
+
+    .card { border: 1px solid var(--border); border-radius: 14px; background: white; padding: 12px; }
+    .row { display: flex; align-items: center; gap: 10px; }
+    .row-space { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .meta { color: #475569; font-size: 12px; }
+    .pill { padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-primary); font-size: 12px; }
+    .pill.gold { background: #FFF7ED; border-color: #FED7AA; color: #92400E; }
+
+    .btn { appearance: none; border: 1px solid var(--border); background: white; color: var(--text-dark); padding: 10px 14px; border-radius: 12px; font-weight: 600; cursor: pointer; }
+    .btn:focus-visible { outline: 3px solid rgba(37,99,235,0.3); }
+    .btn-primary { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
+    .btn-danger { background: var(--accent-red); color: white; border-color: var(--accent-red); }
+
+    input, select, textarea { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: white; box-sizing: border-box; }
+    label { display: block; font-size: 12px; color: #475569; margin: 8px 0 6px 2px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--bg-secondary); font-size: 14px; }
+
+    /* Login Gate */
+    .login { display: grid; place-items: center; min-height: 100svh; padding: 16px; }
+    .login-box { max-width: 420px; width: 100%; }
+
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.38); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
+    .modal-backdrop.show { display: flex; }
+    .modal { width: 100%; max-width: 660px; background: var(--bg-primary); border-top-left-radius: 16px; border-top-right-radius: 16px; border: 1px solid var(--border); padding: 14px; }
+
+    /* Charts */
+    .chart-box { height: 220px; }
+  </style>
+</head>
+<body>
+  <!-- Auth Gate -->
+  <div id="gate" class="login">
+    <div class="card login-box">
+      <div class="brand-title" style="font-size: 18px; margin-bottom: 6px;">Admin Sign In</div>
+      <p class="meta">Enter admin email and passcode</p>
+      <label>Email</label>
+      <input id="adminEmail" placeholder="admin@example.com">
+      <label>Passcode</label>
+      <input id="adminPass" placeholder="••••••" type="password">
+      <div style="height: 10px"></div>
+      <button class="btn btn-primary" id="btnLogin">Sign In</button>
+      <div class="meta" style="margin-top: 8px;">Demo: any email, passcode "admin123"</div>
+    </div>
+  </div>
+
+  <div id="app" style="display:none">
+    <header>
+      <div class="row-space">
+        <div class="row">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.77 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2z" fill="#2563EB"/></svg>
+          <div class="brand-title">Admin • Free Fire</div>
+        </div>
+        <div class="row">
+          <div class="pill">Role: <span id="role">Owner</span></div>
+          <button class="btn" id="btnLogout">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="app">
+      <aside class="drawer">
+        <button class="nav-btn active" data-nav="dashboard" aria-label="Dashboard">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h8V3H3zm10 8h8V3h-8zm-10 0h8v-6H3z"/></svg>
+        </button>
+        <button class="nav-btn" data-nav="tournaments" aria-label="Tournaments">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M7 21h10"/></svg>
+        </button>
+        <button class="nav-btn" data-nav="players" aria-label="Players">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+        <button class="nav-btn" data-nav="analytics" aria-label="Analytics">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 13l3 3 7-7"/></svg>
+        </button>
+        <button class="nav-btn" data-nav="settings" aria-label="Settings">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v4"/><path d="M12 19v4"/><circle cx="12" cy="12" r="3"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M1 12h4"/><path d="M19 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+        </button>
+      </aside>
+
+      <div class="content">
+        <main>
+          <!-- Dashboard -->
+          <section data-view="dashboard">
+            <div class="row-space" style="margin-bottom: 10px;">
+              <div class="brand-title" style="font-size: 18px;">Dashboard</div>
+              <div class="row">
+                <button class="btn" id="btnQuickPayments">View Payments</button>
+                <button class="btn" id="btnQuickNotify">Send Notification</button>
+                <button class="btn btn-primary" id="btnCreateTournament">Create Tournament</button>
+              </div>
+            </div>
+            <div class="cards">
+              <div class="card"><div class="meta">Total Tournaments</div><div class="brand-title" id="mTournaments" style="font-size:22px;">0</div></div>
+              <div class="card"><div class="meta">Total Players</div><div class="brand-title" id="mPlayers" style="font-size:22px;">0</div></div>
+              <div class="card"><div class="meta">Online Players</div><div class="brand-title" id="mOnline" style="font-size:22px;">0</div></div>
+              <div class="card"><div class="meta">Wallet Balance Held</div><div class="brand-title" id="mWallet" style="font-size:22px;">₹0</div></div>
+            </div>
+
+            <div style="height: 12px"></div>
+            <div class="grid">
+              <div class="card">
+                <div class="row-space"><div class="brand-title" style="font-size: 16px;">Daily Sign-ups</div><div class="pill">Last 14 days</div></div>
+                <canvas id="chartSignups" class="chart-box"></canvas>
+              </div>
+              <div class="card">
+                <div class="row-space"><div class="brand-title" style="font-size: 16px;">Revenue</div><div class="pill gold">Entry Fees</div></div>
+                <canvas id="chartRevenue" class="chart-box"></canvas>
+              </div>
+              <div class="card">
+                <div class="row-space"><div class="brand-title" style="font-size: 16px;">Referrals</div><div class="pill">Redeemed</div></div>
+                <canvas id="chartReferrals" class="chart-box"></canvas>
+              </div>
+              <div class="card">
+                <div class="row-space"><div class="brand-title" style="font-size: 16px;">Active Players</div><div class="pill">Real-time</div></div>
+                <canvas id="chartGauge" class="chart-box"></canvas>
+              </div>
+            </div>
+          </section>
+
+          <!-- Tournaments -->
+          <section data-view="tournaments" hidden>
+            <div class="row-space" style="margin-bottom: 10px;">
+              <div class="brand-title" style="font-size: 18px;">Tournaments</div>
+              <div class="row">
+                <input id="searchT" placeholder="Search title/map">
+                <select id="filterStatus">
+                  <option value="all">All</option>
+                  <option value="live">Live</option>
+                  <option value="upcoming">Upcoming</option>
+                  <option value="past">Past</option>
+                </select>
+                <button class="btn btn-primary" id="btnCreateTournament2">Create</button>
+              </div>
+            </div>
+            <div class="card">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Time</th>
+                    <th>Map</th>
+                    <th>Prize</th>
+                    <th>Entry</th>
+                    <th>Players</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="tournamentsTable"></tbody>
+              </table>
+            </div>
+            <div class="row" style="margin-top: 8px;">
+              <button class="btn" id="btnBulkToggle">Enable/Disable Registrations</button>
+              <button class="btn btn-danger" id="btnBulkDelete">Delete Past</button>
+            </div>
+          </section>
+
+          <!-- Players -->
+          <section data-view="players" hidden>
+            <div class="row-space" style="margin-bottom: 10px;">
+              <div class="brand-title" style="font-size: 18px;">Players</div>
+              <div class="row">
+                <input id="searchP" placeholder="Search name/UID/email">
+              </div>
+            </div>
+            <div class="card">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>UID</th>
+                    <th>Wallet</th>
+                    <th>Referrer</th>
+                    <th>Registrations</th>
+                  </tr>
+                </thead>
+                <tbody id="playersTable"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Settings -->
+          <section data-view="settings" hidden>
+            <div class="brand-title" style="font-size: 18px; margin-bottom: 8px;">Settings</div>
+            <div class="grid">
+              <div class="card">
+                <div class="brand-title" style="font-size: 16px;">Payment Gateway</div>
+                <label>Razorpay Key</label>
+                <input id="rzKey" placeholder="rzp_test_...">
+                <label>Stripe Publishable Key</label>
+                <input id="stKey" placeholder="pk_test_...">
+                <button class="btn btn-primary" id="btnSavePayments" style="margin-top:8px">Save</button>
+              </div>
+              <div class="card">
+                <div class="brand-title" style="font-size: 16px;">Referral Rules</div>
+                <label>Bonus per Referral (₹)</label>
+                <input id="refBonus" type="number" min="0" value="10">
+                <button class="btn btn-primary" id="btnSaveReferral" style="margin-top:8px">Save</button>
+              </div>
+              <div class="card">
+                <div class="brand-title" style="font-size: 16px;">Admin Users & Roles</div>
+                <label>Add Admin Email</label>
+                <input id="addAdminEmail" placeholder="email@example.com">
+                <button class="btn" id="btnAddAdmin" style="margin-top:8px">Add</button>
+                <div class="divider" style="height:1px; background: var(--border); margin: 12px 0;"></div>
+                <div id="adminList" class="meta"></div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tournament Create/Edit Modal -->
+  <div class="modal-backdrop" id="tModal">
+    <div class="modal">
+      <div class="row-space" style="margin-bottom: 6px;">
+        <div class="brand-title" style="font-size: 16px;" id="tModalTitle">Create Tournament</div>
+        <button class="btn" data-close-modal>Close</button>
+      </div>
+      <div class="row" style="gap: 10px; flex-wrap: wrap;">
+        <div style="flex:1; min-width: 220px;">
+          <label>Title</label>
+          <input id="tTitle">
+        </div>
+        <div style="flex:1; min-width: 220px;">
+          <label>Date & Time</label>
+          <input id="tTime" type="datetime-local">
+        </div>
+        <div style="flex:1; min-width: 160px;">
+          <label>Map</label>
+          <input id="tMap" placeholder="Bermuda">
+        </div>
+      </div>
+      <div class="row" style="gap: 10px; flex-wrap: wrap; margin-top: 8px;">
+        <div style="flex:1; min-width: 120px;">
+          <label>Prize (₹)</label>
+          <input id="tPrize" type="number" min="0" value="1000">
+        </div>
+        <div style="flex:1; min-width: 120px;">
+          <label>Entry Fee (₹)</label>
+          <input id="tEntry" type="number" min="0" value="20">
+        </div>
+        <div style="flex:1; min-width: 120px;">
+          <label>Max Players</label>
+          <input id="tMax" type="number" min="2" value="100">
+        </div>
+      </div>
+      <div class="row" style="gap: 10px; flex-wrap: wrap; margin-top: 8px;">
+        <div style="flex:1; min-width: 160px;">
+          <label>Room ID</label>
+          <input id="tRoomId" placeholder="12345">
+        </div>
+        <div style="flex:1; min-width: 160px;">
+          <label>Room Pass</label>
+          <input id="tRoomPass" placeholder="abcde">
+        </div>
+      </div>
+      <div class="row-space" style="margin-top: 10px;">
+        <div class="row"><input type="checkbox" id="tEnable" checked><label for="tEnable">Enable Registrations</label></div>
+        <div>
+          <button class="btn" id="tDelete" style="display:none">Delete</button>
+          <button class="btn btn-primary" id="tSave">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase placeholders
+    // firebase.initializeApp(firebaseConfig);
+    // const db = firebase.firestore();
+    // firebase.auth().onAuthStateChanged(user => { ... });
+
+    // Admin auth mock
+    const adminState = {
+      isAuthed: false,
+      role: 'Owner',
+      settings: { rzKey: '', stKey: '', refBonus: 10, admins: ['owner@example.com'] },
+      tournaments: [],
+      players: [],
+      selectedIds: new Set(),
+      editId: null,
+    };
+
+    const $ = (q) => document.querySelector(q);
+    const $$ = (q) => Array.from(document.querySelectorAll(q));
+    const fmt = (n) => `₹${Number(n||0).toLocaleString('en-IN')}`;
+
+    function gate(showApp){
+      $('#gate').style.display = showApp ? 'none' : 'grid';
+      $('#app').style.display = showApp ? 'block' : 'none';
+    }
+
+    function randomId(prefix='id'){ return prefix + Math.random().toString(36).slice(2,8); }
+
+    function seed(){
+      // Load from user.html localStorage if present
+      const t = JSON.parse(localStorage.getItem('ff_tournaments') || '[]');
+      const user = JSON.parse(localStorage.getItem('ff_user') || 'null');
+      const regs = user ? JSON.parse(localStorage.getItem('ff_regs_' + user.id) || '{}') : {};
+      adminState.tournaments = t;
+      adminState.players = user ? [{ id: user.id, name: user.name, uid: user.ffUid, wallet: user.walletBalance, referrer: user.referrer, regs }] : [];
+    }
+
+    function navTo(view){
+      $$('[data-view]').forEach(v => v.hidden = v.getAttribute('data-view') !== view);
+      $$('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-nav') === view));
+      if (view === 'dashboard') renderDashboard();
+      if (view === 'tournaments') renderTournaments();
+      if (view === 'players') renderPlayers();
+      if (view === 'analytics') lazyLoadCharts().then(renderCharts);
+    }
+
+    // Dashboard
+    function renderDashboard(){
+      $('#mTournaments').textContent = adminState.tournaments.length;
+      $('#mPlayers').textContent = adminState.players.length;
+      const online = Math.floor((adminState.tournaments.filter(x => isLive(x.matchTime)).length * 20) + Math.random()*10);
+      $('#mOnline').textContent = online;
+      const held = adminState.tournaments.reduce((sum, t) => sum + (t.entryFee * (t.playersJoined||0)), 0);
+      $('#mWallet').textContent = fmt(held);
+    }
+
+    function isLive(matchIso){
+      const t = new Date(matchIso).getTime();
+      const now = Date.now();
+      return t <= now && now - t < 90*60*1000;
+    }
+
+    // Tournaments CRUD
+    function renderTournaments(){
+      const q = ($('#searchT').value || '').toLowerCase();
+      const status = $('#filterStatus').value;
+      const host = $('#tournamentsTable');
+      host.innerHTML = '';
+      const list = adminState.tournaments.filter(t => {
+        const okQ = !q || t.title.toLowerCase().includes(q) || t.map.toLowerCase().includes(q);
+        const live = isLive(t.matchTime);
+        const past = new Date(t.matchTime).getTime() < Date.now() - 90*60*1000;
+        const okS = status === 'all' || (status === 'live' && live) || (status === 'upcoming' && !live && !past) || (status === 'past' && past);
+        return okQ && okS;
+      });
+      for (const t of list){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="checkbox" data-select="${t.id}"> ${t.title}</td>
+          <td>${new Date(t.matchTime).toLocaleString()}</td>
+          <td>${t.map}</td>
+          <td>${fmt(t.prize)}</td>
+          <td>${fmt(t.entryFee)}</td>
+          <td>${t.playersJoined||0}/${t.maxPlayers}</td>
+          <td>
+            <button class="btn" data-edit="${t.id}">Edit</button>
+          </td>
+        `;
+        host.appendChild(tr);
+      }
+    }
+
+    function openTournamentModal(id){
+      adminState.editId = id || null;
+      $('#tModalTitle').textContent = id ? 'Edit Tournament' : 'Create Tournament';
+      const t = id ? adminState.tournaments.find(x => x.id === id) : { title:'', matchTime:'', map:'Bermuda', prize:1000, entryFee:20, maxPlayers:100, roomId:'', roomPass:'', enabled:true };
+      $('#tTitle').value = t.title;
+      $('#tTime').value = t.matchTime ? new Date(t.matchTime).toISOString().slice(0,16) : '';
+      $('#tMap').value = t.map;
+      $('#tPrize').value = t.prize;
+      $('#tEntry').value = t.entryFee;
+      $('#tMax').value = t.maxPlayers;
+      $('#tRoomId').value = t.roomId;
+      $('#tRoomPass').value = t.roomPass;
+      $('#tEnable').checked = t.enabled !== false;
+      $('#tDelete').style.display = id ? 'inline-block' : 'none';
+      toggleModal('#tModal', true);
+    }
+
+    function saveTournament(){
+      const payload = {
+        title: $('#tTitle').value.trim(),
+        matchTime: new Date($('#tTime').value).toISOString(),
+        map: $('#tMap').value.trim(),
+        prize: Number($('#tPrize').value)||0,
+        entryFee: Number($('#tEntry').value)||0,
+        maxPlayers: Number($('#tMax').value)||100,
+        roomId: $('#tRoomId').value.trim(),
+        roomPass: $('#tRoomPass').value.trim(),
+        enabled: $('#tEnable').checked,
+      };
+      if (adminState.editId){
+        const idx = adminState.tournaments.findIndex(x => x.id === adminState.editId);
+        if (idx >= 0) adminState.tournaments[idx] = { ...adminState.tournaments[idx], ...payload };
+        // Firestore placeholder
+        // await db.collection('tournaments').doc(adminState.editId).set(payload, { merge: true });
+      } else {
+        const id = randomId('t');
+        adminState.tournaments.push({ id, playersJoined: 0, ...payload });
+        // Firestore placeholder
+        // await db.collection('tournaments').doc(id).set({ id, ...payload });
+      }
+      localStorage.setItem('ff_tournaments', JSON.stringify(adminState.tournaments));
+      renderTournaments();
+      renderDashboard();
+      toggleModal('#tModal', false);
+    }
+
+    function deleteTournament(){
+      if (!adminState.editId) return;
+      adminState.tournaments = adminState.tournaments.filter(x => x.id !== adminState.editId);
+      localStorage.setItem('ff_tournaments', JSON.stringify(adminState.tournaments));
+      renderTournaments();
+      renderDashboard();
+      toggleModal('#tModal', false);
+    }
+
+    // Bulk actions
+    function bulkToggle(){
+      const ids = Array.from(adminState.selectedIds);
+      if (!ids.length) return;
+      adminState.tournaments = adminState.tournaments.map(t => ids.includes(t.id) ? { ...t, enabled: !(t.enabled !== false) } : t);
+      localStorage.setItem('ff_tournaments', JSON.stringify(adminState.tournaments));
+      renderTournaments();
+    }
+
+    function bulkDeletePast(){
+      const cutoff = Date.now() - 90*60*1000;
+      adminState.tournaments = adminState.tournaments.filter(t => new Date(t.matchTime).getTime() >= cutoff);
+      localStorage.setItem('ff_tournaments', JSON.stringify(adminState.tournaments));
+      renderTournaments();
+      renderDashboard();
+    }
+
+    // Players
+    function renderPlayers(){
+      const q = ($('#searchP').value||'').toLowerCase();
+      const host = $('#playersTable');
+      host.innerHTML = '';
+      const list = adminState.players.filter(p => !q || (p.name||'').toLowerCase().includes(q) || (p.uid||'').includes(q));
+      for (const p of list){
+        const regsCount = Object.values(p.regs||{}).filter(Boolean).length;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.name||'-'}</td>
+          <td>${p.uid||'-'}</td>
+          <td>${fmt(p.wallet||0)}</td>
+          <td>${p.referrer||'-'}</td>
+          <td>${regsCount}</td>
+        `;
+        host.appendChild(tr);
+      }
+    }
+
+    // Settings
+    function savePayments(){
+      adminState.settings.rzKey = $('#rzKey').value.trim();
+      adminState.settings.stKey = $('#stKey').value.trim();
+      localStorage.setItem('admin_settings', JSON.stringify(adminState.settings));
+      alert('Payment keys saved');
+    }
+    function saveReferral(){
+      adminState.settings.refBonus = Number($('#refBonus').value)||0;
+      localStorage.setItem('admin_settings', JSON.stringify(adminState.settings));
+      alert('Referral rules saved');
+    }
+    function addAdmin(){
+      const email = $('#addAdminEmail').value.trim();
+      if (!email) return;
+      if (!adminState.settings.admins.includes(email)) adminState.settings.admins.push(email);
+      localStorage.setItem('admin_settings', JSON.stringify(adminState.settings));
+      renderAdmins();
+      $('#addAdminEmail').value = '';
+    }
+    function renderAdmins(){
+      $('#adminList').textContent = adminState.settings.admins.join(', ');
+    }
+
+    // Charts
+    function lazyLoadCharts(){
+      return new Promise((resolve) => {
+        if (window.Chart) return resolve();
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+        s.onload = () => resolve();
+        document.body.appendChild(s);
+      });
+    }
+
+    function renderCharts(){
+      if (!window.Chart) return;
+      const labels = Array.from({length: 14}, (_, i) => new Date(Date.now() - (13 - i)*86400000)).map(d => `${d.getMonth()+1}/${d.getDate()}`);
+      const signups = labels.map(()=> Math.floor(Math.random()*20)+5);
+      const revenue = labels.map(()=> Math.floor(Math.random()*2000)+500);
+      const referrals = labels.map(()=> Math.floor(Math.random()*10));
+      const active = labels.map(()=> Math.floor(Math.random()*50)+10);
+
+      new Chart($('#chartSignups'), { type:'line', data:{ labels, datasets:[{ label:'Sign-ups', data:signups, borderColor:'#2563EB', backgroundColor:'rgba(37,99,235,0.15)', tension:0.3, fill:true }] }, options:{ plugins:{ legend:{ display:false } }, scales:{ x:{ display:false } } });
+      new Chart($('#chartRevenue'), { type:'bar', data:{ labels, datasets:[{ label:'Revenue', data:revenue, backgroundColor:'#FBBF24' }] }, options:{ plugins:{ legend:{ display:false } }, scales:{ x:{ display:false } } });
+      new Chart($('#chartReferrals'), { type:'line', data:{ labels, datasets:[{ label:'Referrals', data:referrals, borderColor:'#10B981', backgroundColor:'rgba(16,185,129,0.15)', tension:0.35, fill:true }] }, options:{ plugins:{ legend:{ display:false } }, scales:{ x:{ display:false } } });
+      new Chart($('#chartGauge'), { type:'line', data:{ labels, datasets:[{ label:'Active', data:active, borderColor:'#DC2626' }] }, options:{ plugins:{ legend:{ display:false } }, scales:{ x:{ display:false } } });
+    }
+
+    // Modal helper
+    function toggleModal(sel, show){
+      const el = document.querySelector(sel);
+      if (!el) return;
+      if (show) el.classList.add('show'); else el.classList.remove('show');
+    }
+
+    // Events
+    function wire(){
+      // Auth
+      $('#btnLogin').addEventListener('click', () => {
+        const pass = $('#adminPass').value.trim();
+        if (pass === 'admin123'){
+          adminState.isAuthed = true; gate(true); seed(); navTo('dashboard'); renderAdmins();
+          const saved = JSON.parse(localStorage.getItem('admin_settings')||'null');
+          if (saved) adminState.settings = saved; $('#rzKey').value = adminState.settings.rzKey; $('#stKey').value = adminState.settings.stKey; $('#refBonus').value = adminState.settings.refBonus;
+        } else {
+          alert('Invalid passcode');
+        }
+      });
+      $('#btnLogout').addEventListener('click', () => { adminState.isAuthed = false; gate(false); });
+
+      // Nav
+      $$('.nav-btn').forEach(b => b.addEventListener('click', () => navTo(b.getAttribute('data-nav'))));
+
+      // Dashboard quick actions
+      $('#btnCreateTournament').addEventListener('click', () => openTournamentModal());
+      $('#btnQuickPayments').addEventListener('click', () => alert('Payments list placeholder'));
+      $('#btnQuickNotify').addEventListener('click', () => alert('Notification sent'));
+
+      // Tournaments events
+      $('#btnCreateTournament2').addEventListener('click', () => openTournamentModal());
+      $('#tournamentsTable').addEventListener('click', (e) => {
+        const edit = e.target.closest('[data-edit]')?.getAttribute('data-edit');
+        const sel = e.target.closest('[data-select]')?.getAttribute('data-select');
+        if (edit) openTournamentModal(edit);
+        if (sel) {
+          const id = sel; const input = e.target.closest('input[type="checkbox"]');
+          if (input?.checked) adminState.selectedIds.add(id); else adminState.selectedIds.delete(id);
+        }
+      });
+      $('#searchT').addEventListener('input', renderTournaments);
+      $('#filterStatus').addEventListener('change', renderTournaments);
+      $('#btnBulkToggle').addEventListener('click', bulkToggle);
+      $('#btnBulkDelete').addEventListener('click', bulkDeletePast);
+
+      // Modal actions
+      $('#tSave').addEventListener('click', saveTournament);
+      $('#tDelete').addEventListener('click', deleteTournament);
+      $$('#tModal [data-close-modal]').forEach(b => b.addEventListener('click', () => toggleModal('#tModal', false)));
+
+      // Players
+      $('#searchP').addEventListener('input', renderPlayers);
+
+      // Settings
+      $('#btnSavePayments').addEventListener('click', savePayments);
+      $('#btnSaveReferral').addEventListener('click', saveReferral);
+      $('#btnAddAdmin').addEventListener('click', addAdmin);
+    }
+
+    (function init(){ wire(); })();
+  </script>
+</body>
+</html>
